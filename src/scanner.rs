@@ -3,10 +3,6 @@ use crate::token::Object;
 use crate::token::Token;
 use crate::token_type::TokenType;
 use ::phf::{phf_map, Map};
-#[path = "./token.rs"]
-mod token;
-#[path = "./token_type.rs"]
-mod token_type;
 
 static KEYWORDS: Map<&'static str, TokenType> = phf_map! {
     "and" => TokenType::And,

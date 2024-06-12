@@ -1,8 +1,5 @@
 use crate::token_type::TokenType;
 
-#[path = "./token_type.rs"]
-mod token_type;
-
 #[derive(Clone, Debug)]
 pub enum Object {
     None,
