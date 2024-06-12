@@ -1,11 +1,31 @@
 use crate::Rlox;
+use crate::token::Object;
 use crate::token::Token;
 use crate::token_type::TokenType;
-
+use ::phf::{phf_map, Map};
 #[path = "./token.rs"]
 mod token;
 #[path = "./token_type.rs"]
 mod token_type;
+
+static KEYWORDS: Map<&'static str, TokenType> = phf_map! {
+    "and" => TokenType::And,
+    "class" => TokenType::Class,
+    "else" => TokenType::Else,
+    "false" => TokenType::False,
+    "for" => TokenType::For,
+    "fun" => TokenType::Fun,
+    "if" => TokenType::If,
+    "nil" => TokenType::Nil,
+    "or" => TokenType::Or,
+    "print" => TokenType::Print,
+    "return" => TokenType::Return,
+    "super" => TokenType::Super,
+    "this" => TokenType::This,
+    "true" => TokenType::True,
+    "var" => TokenType::Var,
+    "while" => TokenType::While,
+};
 
 #[derive(Debug)]
  pub struct Scanner<'a> {
@@ -35,11 +55,12 @@ impl Scanner<'_> {
 
     fn add_token(&mut self, token_type: TokenType) {
         let text: String = self.source[self.start..self.current].to_string();
-        self.tokens.push(Token::new(token_type, text, self.line));
+        self.tokens.push(Token::new(token_type, text, self.line, Object::None));
     }
 
-    fn add_token_string(&mut self, token_type: TokenType, text: String) {
-        self.tokens.push(Token::new(token_type, text, self.line));
+    fn add_token_value(&mut self, token_type: TokenType, literal: Object) {
+        let text: String = self.source[self.start..self.current].to_string();
+        self.tokens.push(Token::new(token_type, text, self.line, literal));
     }
 
     fn match_next(&mut self, expected: char) -> bool {
@@ -58,6 +79,85 @@ impl Scanner<'_> {
             return '\0';
         }
         return self.source.chars().nth(self.current).unwrap();
+    }
+
+    fn peek_next(&self) -> char {
+        if self.current + 1 >= self.source.len() {
+            return '\0';
+        }
+        return self.source.chars().nth(self.current + 1).unwrap();
+    }
+
+    fn string(&mut self) {
+        // Iterate till you go to the end of the string and it has not ended
+        while self.peek() != '"'  && !self.is_at_end(){
+            // As multi-line comments are allowed, increment the line
+            if self.peek() == '\n' {
+                self.line += 1;
+            }
+            self.advance();
+        }
+
+        // If the string was not terminated
+        if self.is_at_end() {
+            self.rlox.error(self.line, "Unterminated String!");
+            return;
+        }
+
+        // Now if the loop exited and is not at the end, that means you are at "
+        self.advance(); // Consume the "
+
+        // Get the string value
+        self.add_token_value(TokenType::String, Object::String);
+    }
+
+    fn is_digit(&self, c: char) -> bool {
+        return c >= '0' && c <= '9';
+    }
+
+    fn is_alpha(&self, c:char) -> bool {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+    }
+
+    fn is_alpha_numeric(&self, c: char) -> bool {
+        return self.is_digit(c) || self.is_alpha(c);
+    }
+
+    fn number(&mut self) {
+        // While it continues to be a digit, you can advance
+        while self.is_digit(self.peek()) {
+            self.advance();
+        }
+
+        // If it ever becomes fraction
+        if self.peek() == '.' && self.is_digit(self.peek_next()) {
+            // Consume the full stop
+            self.advance();
+            // Continue till you get nums
+            while self.is_digit(self.peek()) {
+                self.advance();
+            }
+        }
+
+        // Now you get the number
+        self.add_token_value(TokenType::Number, Object::Number);
+    }
+
+    fn identifier(&mut self) {
+        while self.is_alpha_numeric(self.peek()) {
+            self.advance();
+        }
+
+        let text = &self.source[self.start..self.current];
+
+        let mut token_type: TokenType = TokenType::Identifier;
+
+        match KEYWORDS.get(text).cloned() {
+            Some(tok_type) => token_type = tok_type,
+            None => {}
+        }
+
+        self.add_token(token_type);
     }
 
     fn scan_token(&mut self) {
@@ -90,7 +190,16 @@ impl Scanner<'_> {
             '\r' => {},
             '\t' => {},
             '\n' => self.line += 1,
-            _ => self.rlox.error(self.line, "Unexpected character."),
+            '"' => self.string(),
+            _ => {
+                if self.is_digit(c) {
+                    self.number();
+                } else if self.is_alpha(c) {
+                    self.identifier();
+                } else {
+                    self.rlox.error(self.line, "Unexpected character.");
+                }
+            },
         }
     }
 
@@ -100,7 +209,7 @@ impl Scanner<'_> {
             self.scan_token();
         }
 
-        self.tokens.push(Token::new(TokenType::EOF, "".to_string(), self.line));
+        self.tokens.push(Token::new(TokenType::EOF, "".to_string(), self.line, Object::None));
         return self.tokens.clone();
     }
 }
