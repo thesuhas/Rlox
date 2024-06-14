@@ -1,3 +1,4 @@
+use crate::expr::Expr::Unary;
 use crate::token::{Object, Token};
 use crate::token_type::TokenType;
 
@@ -35,6 +36,36 @@ pub struct LiteralExpression {
 pub struct UnaryExpression {
     operator: Token,
     right: Box<Expr>,
+}
+
+impl Expr {
+    pub fn new_binary(left: Expr, operator: Token, right: Expr) -> Expr {
+        Expr::Binary(Box::from(BinaryExpression {
+            left: Box::from(left),
+            operator,
+            right: Box::from(right),
+        }))
+    }
+
+    pub fn new_unary(operator: Token, right: Expr) -> Expr {
+        Expr::Unary(Box::from(UnaryExpression {
+            operator,
+            right: Box::from(right),
+        }))
+    }
+
+    pub fn new_literal(literal_type: Object, value: Token) -> Expr {
+        Expr::Literal(Box::from(LiteralExpression {
+            literal_type,
+            value,
+        }))
+    }
+
+    pub fn new_grouping(expression: Expr) -> Expr {
+        Expr::Grouping(Box::from(GroupingExpression {
+            expression: Box::from(expression),
+        }))
+    }
 }
 
 pub fn parenthesize(name: String, exprs: &[&Expr]) -> String {

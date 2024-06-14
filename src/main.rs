@@ -1,11 +1,16 @@
 mod expr;
+mod parser;
 pub mod scanner;
 mod token;
 mod token_type;
 
 use scanner::Scanner;
 
+use crate::expr::Expr;
+use crate::parser::Parser;
 use crate::token::Token;
+use crate::token_type::TokenType;
+use crate::token_type::TokenType::Plus;
 use std::env;
 use std::fs;
 use std::io::{stdin, stdout, Write};
@@ -56,14 +61,35 @@ impl Rlox {
         self.report(line, "".to_string(), message);
     }
 
+    fn parse_error(&mut self, token: Token, message: String) {
+        if matches!(token.get_type(), TokenType::EOF) {
+            self.report(token.get_line(), " at end".to_string(), message.as_str());
+        } else {
+            self.report(
+                token.get_line(),
+                "at '".to_string() + token.get_lexeme().as_str() + "'",
+                message.as_str(),
+            );
+        }
+    }
+
     fn run(&mut self, source: String) {
         let mut scanner = Scanner::new(source, self);
-
         let tokens: Vec<Token> = scanner.scan_tokens();
 
-        for token in tokens.iter() {
-            println!("{}", token.to_string());
+        // for token in tokens.iter() {
+        //     println!("{}", token.to_string());
+        // }
+
+        let mut parser: Parser = Parser::new(tokens, self);
+        let expr: Expr = parser.parse();
+
+        // If error, return
+        if self.had_error {
+            return;
         }
+
+        expr::print_expr(&expr);
     }
 }
 

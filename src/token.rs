@@ -24,6 +24,18 @@ impl Token {
         format!("{}", self.lexeme)
     }
 
+    pub fn get_type(&self) -> TokenType {
+        self.token_type.clone()
+    }
+
+    pub fn get_line(&self) -> i32 {
+        self.line
+    }
+
+    pub fn get_lexeme(&self) -> String {
+        self.lexeme.clone()
+    }
+
     pub fn new(token_type: TokenType, lexeme: String, line: i32, object: Object) -> Token {
         return Token {
             token_type,
