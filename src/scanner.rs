@@ -1,7 +1,7 @@
-use crate::Rlox;
 use crate::token::Object;
 use crate::token::Token;
 use crate::token_type::TokenType;
+use crate::Rlox;
 use ::phf::{phf_map, Map};
 
 static KEYWORDS: Map<&'static str, TokenType> = phf_map! {
@@ -24,7 +24,7 @@ static KEYWORDS: Map<&'static str, TokenType> = phf_map! {
 };
 
 #[derive(Debug)]
- pub struct Scanner<'a> {
+pub struct Scanner<'a> {
     source: String,
     tokens: Vec<Token>,
     current: usize,
@@ -36,7 +36,14 @@ static KEYWORDS: Map<&'static str, TokenType> = phf_map! {
 impl Scanner<'_> {
     pub fn new(source: String, rlox: &mut Rlox) -> Scanner {
         let empty = Vec::new();
-        Scanner {source, tokens:empty, current:0, start: 0, line: 1, rlox }
+        Scanner {
+            source,
+            tokens: empty,
+            current: 0,
+            start: 0,
+            line: 1,
+            rlox,
+        }
     }
 
     fn is_at_end(&self) -> bool {
@@ -44,19 +51,21 @@ impl Scanner<'_> {
     }
 
     fn advance(&mut self) -> char {
-        let char =  self.source.chars().nth(self.current).unwrap();
+        let char = self.source.chars().nth(self.current).unwrap();
         self.current += 1;
         return char;
     }
 
     fn add_token(&mut self, token_type: TokenType) {
         let text: String = self.source[self.start..self.current].to_string();
-        self.tokens.push(Token::new(token_type, text, self.line, Object::None));
+        self.tokens
+            .push(Token::new(token_type, text, self.line, Object::None));
     }
 
     fn add_token_value(&mut self, token_type: TokenType, literal: Object) {
         let text: String = self.source[self.start..self.current].to_string();
-        self.tokens.push(Token::new(token_type, text, self.line, literal));
+        self.tokens
+            .push(Token::new(token_type, text, self.line, literal));
     }
 
     fn match_next(&mut self, expected: char) -> bool {
@@ -86,7 +95,7 @@ impl Scanner<'_> {
 
     fn string(&mut self) {
         // Iterate till you go to the end of the string and it has not ended
-        while self.peek() != '"'  && !self.is_at_end(){
+        while self.peek() != '"' && !self.is_at_end() {
             // As multi-line comments are allowed, increment the line
             if self.peek() == '\n' {
                 self.line += 1;
@@ -111,7 +120,7 @@ impl Scanner<'_> {
         return c >= '0' && c <= '9';
     }
 
-    fn is_alpha(&self, c:char) -> bool {
+    fn is_alpha(&self, c: char) -> bool {
         return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
     }
 
@@ -169,10 +178,34 @@ impl Scanner<'_> {
             '+' => self.add_token(TokenType::Plus),
             ';' => self.add_token(TokenType::SemiColon),
             '*' => self.add_token(TokenType::Star),
-            '!' => if self.match_next('=') {self.add_token(TokenType::BangEqual)} else {self.add_token(TokenType::Bang)},
-            '=' => if self.match_next('=') {self.add_token(TokenType::EqualEqual)} else {self.add_token(TokenType::Equal)},
-            '<' => if self.match_next('=') {self.add_token(TokenType::LessEqual)} else {self.add_token(TokenType::Less)},
-            '>' => if self.match_next('=') {self.add_token(TokenType::GreaterEqual)} else {self.add_token(TokenType::Greater)},
+            '!' => {
+                if self.match_next('=') {
+                    self.add_token(TokenType::BangEqual)
+                } else {
+                    self.add_token(TokenType::Bang)
+                }
+            }
+            '=' => {
+                if self.match_next('=') {
+                    self.add_token(TokenType::EqualEqual)
+                } else {
+                    self.add_token(TokenType::Equal)
+                }
+            }
+            '<' => {
+                if self.match_next('=') {
+                    self.add_token(TokenType::LessEqual)
+                } else {
+                    self.add_token(TokenType::Less)
+                }
+            }
+            '>' => {
+                if self.match_next('=') {
+                    self.add_token(TokenType::GreaterEqual)
+                } else {
+                    self.add_token(TokenType::Greater)
+                }
+            }
             '/' => {
                 if self.match_next('/') {
                     while self.peek() != '\n' && !self.is_at_end() {
@@ -182,9 +215,9 @@ impl Scanner<'_> {
                     self.add_token(TokenType::Slash);
                 }
             }
-            ' ' => {},
-            '\r' => {},
-            '\t' => {},
+            ' ' => {}
+            '\r' => {}
+            '\t' => {}
             '\n' => self.line += 1,
             '"' => self.string(),
             _ => {
@@ -195,7 +228,7 @@ impl Scanner<'_> {
                 } else {
                     self.rlox.error(self.line, "Unexpected character.");
                 }
-            },
+            }
         }
     }
 
@@ -205,7 +238,12 @@ impl Scanner<'_> {
             self.scan_token();
         }
 
-        self.tokens.push(Token::new(TokenType::EOF, "".to_string(), self.line, Object::None));
+        self.tokens.push(Token::new(
+            TokenType::EOF,
+            "".to_string(),
+            self.line,
+            Object::None,
+        ));
         return self.tokens.clone();
     }
 }

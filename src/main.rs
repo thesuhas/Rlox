@@ -1,25 +1,24 @@
+mod expr;
 pub mod scanner;
 mod token;
 mod token_type;
 
 use scanner::Scanner;
 
+use crate::token::Token;
 use std::env;
-use std::process::ExitCode;
 use std::fs;
 use std::io::{stdin, stdout, Write};
-use crate::token::Token;
+use std::process::ExitCode;
 
 #[derive(Debug)]
-struct Rlox{
+struct Rlox {
     had_error: bool,
 }
 
 impl Default for Rlox {
     fn default() -> Rlox {
-        Rlox {
-            had_error: false
-        }
+        Rlox { had_error: false }
     }
 }
 
@@ -42,7 +41,7 @@ impl Rlox {
             match stdin().read_line(&mut input) {
                 Ok(0) => break,
                 Ok(_) => self.run(input.clone()),
-                Err(e) => panic!("{}", e)
+                Err(e) => panic!("{}", e),
             }
             self.had_error = false;
         }
@@ -70,7 +69,9 @@ impl Rlox {
 
 fn main() -> ExitCode {
     let args: Vec<String> = env::args().collect();
-    let mut rlox: Rlox = Rlox{..Default::default()};
+    let mut rlox: Rlox = Rlox {
+        ..Default::default()
+    };
     if args.len() > 2 {
         println!("Usage: rlox [script]");
         ExitCode::from(64)
