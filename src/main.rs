@@ -4,6 +4,7 @@ mod parser;
 pub mod scanner;
 mod token;
 mod token_type;
+mod stmt;
 
 use scanner::Scanner;
 
@@ -17,6 +18,7 @@ use std::env;
 use std::fs;
 use std::io::{stdin, stdout, Write};
 use std::process::ExitCode;
+use crate::stmt::Stmt;
 
 #[derive(Debug)]
 struct Rlox {
@@ -96,17 +98,16 @@ impl Rlox {
         // }
 
         let mut parser: Parser = Parser::new(tokens, self);
-        let expr: Expr = parser.parse();
+        let stmts: Vec<Stmt> = parser.parse();
         let mut interpreter: Interpreter = Interpreter::new(self);
-        println!("{:?}", interpreter.interpret(expr.clone()));
-        stdout().flush().expect("Unable to flush to stdout!");
+        interpreter.interpret(stmts);
 
         // If error, return
         if self.had_error || self.had_runtime_error {
             return;
         }
 
-        expr::print_expr(&expr);
+        // expr::print_expr(&expr);
     }
 }
 

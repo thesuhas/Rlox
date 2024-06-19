@@ -1,8 +1,8 @@
-use crate::expr::{BinaryExpression, Expr};
+use crate::expr::{Expr};
 use crate::token::{Object, Token};
 use crate::token_type::TokenType;
 use crate::Rlox;
-use std::ops::Deref;
+use crate::stmt::Stmt;
 
 pub struct Parser<'a> {
     tokens: Vec<Token>,
@@ -19,8 +19,31 @@ impl Parser<'_> {
         }
     }
 
-    pub fn parse(&mut self) -> Expr {
-        self.expression()
+    pub fn parse(&mut self) -> Vec<Stmt> {
+        let mut stmts: Vec<Stmt> = Vec::new();
+        while !self.is_at_end() {
+            stmts.push(self.statement());
+        }
+        stmts
+    }
+
+    fn statement(&mut self) -> Stmt {
+        if self.match_token(&[&TokenType::Print]) {
+            return self.print_statement();
+        }
+        return self.expression_statement();
+    }
+
+    fn print_statement(&mut self) -> Stmt {
+        let expr: Expr = self.expression();
+        self.consume(TokenType::SemiColon, "Expect ';' after value".to_string());
+        return Stmt::PrintStatement(Box::from(Stmt::new_print_stmt(expr)));
+    }
+
+    fn expression_statement(&mut self) -> Stmt {
+        let expr: Expr = self.expression();
+        self.consume(TokenType::SemiColon, "Expect ';' after statement".to_string());
+        return Stmt::ExpressionStatement(Box::from(Stmt::new_exp_stmt(expr)));
     }
 
     fn expression(&mut self) -> Expr {

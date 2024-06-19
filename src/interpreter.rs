@@ -3,6 +3,8 @@ use crate::token::{Object, Token};
 use crate::token_type::TokenType;
 use crate::Rlox;
 use std::any::{Any, TypeId};
+use std::io::{stdout, Write};
+use crate::stmt::{ExpressionStatement, PrintStatement, Stmt};
 
 pub struct Interpreter<'a> {
     rlox: &'a mut Rlox,
@@ -13,9 +15,10 @@ impl Interpreter<'_> {
         Interpreter { rlox }
     }
 
-    pub fn interpret(&mut self, expr: Expr) -> String {
-        let val = self.evaluate(expr);
-        self.stringify(val)
+    pub fn interpret(&mut self, stmts: Vec<Stmt>) {
+        for stmt in stmts {
+            self.execute(stmt);
+        }
     }
 
     fn stringify(&self, val: Box<dyn Any>) -> String {
@@ -200,5 +203,24 @@ impl Interpreter<'_> {
             Expr::Unary(expr) => self.visit_unary_expr((*expr).clone()),
             Expr::Binary(expr) => self.visit_binary_expr((*expr).clone()),
         }
+    }
+
+
+    fn execute(&mut self, stmt: Stmt) {
+        match stmt.clone() {
+            Stmt::ExpressionStatement(stmt) => self.visit_expr_stmt((*stmt).clone()),
+            Stmt::PrintStatement(stmt) => self.visit_print_stmt((*stmt).clone())
+        }
+    }
+
+    fn visit_expr_stmt(&mut self, stmt: ExpressionStatement) {
+        self.evaluate(Stmt::get_expr_stmt_expr(stmt));
+    }
+
+    fn visit_print_stmt(&mut self, stmt: PrintStatement) {
+        let out = self.evaluate(Stmt::get_print_stmt_expr(stmt));
+        let str_out = self.stringify(out);
+        println!("{:?}", str_out);
+        stdout().flush().expect("Unable to flush to stdout!");
     }
 }
