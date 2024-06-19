@@ -2,9 +2,11 @@ use crate::token_type::TokenType;
 
 #[derive(Clone, Debug)]
 pub enum Object {
-    None,
+    // None,
     String,
     Number,
+    Bool,
+    Nil
 }
 
 #[derive(Debug, Clone)]

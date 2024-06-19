@@ -112,20 +112,20 @@ impl Parser<'_> {
 
     fn primary(&mut self) -> Option<Expr> {
         if self.match_token(&[&TokenType::False]) {
-            return Some(Expr::new_literal(Object::None, self.previous()));
+            return Some(Expr::new_literal(Object::Bool, self.previous()));
         } else if self.match_token(&[&TokenType::True]) {
-            return Some(Expr::new_literal(Object::None, self.previous()));
+            return Some(Expr::new_literal(Object::Bool, self.previous()));
         } else if self.match_token(&[&TokenType::Nil]) {
-            return Some(Expr::new_literal(Object::None, self.previous()));
+            return Some(Expr::new_literal(Object::Nil, self.previous()));
         } else if self.match_token(&[&TokenType::Number]) {
             return Some(Expr::new_literal(Object::Number, self.previous()));
         } else if self.match_token(&[&TokenType::String]) {
             return Some(Expr::new_literal(Object::String, self.previous()));
-        } else if self.match_token(&[&TokenType::LeftBrace]) {
+        } else if self.match_token(&[&TokenType::LeftParen]) {
             // Consume the enclosing expression
             let expr: Expr = self.expression();
             if self.consume(
-                TokenType::RightBrace,
+                TokenType::RightParen,
                 "Expected ')' after expression".to_string(),
             ) {
                 return Some(Expr::new_grouping(expr));

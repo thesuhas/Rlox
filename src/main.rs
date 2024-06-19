@@ -3,11 +3,13 @@ mod parser;
 pub mod scanner;
 mod token;
 mod token_type;
+mod interpreter;
 
 use scanner::Scanner;
 
 use crate::expr::Expr;
 use crate::parser::Parser;
+use crate::interpreter::Interpreter;
 use crate::token::Token;
 use crate::token_type::TokenType;
 use crate::token_type::TokenType::Plus;
@@ -19,11 +21,12 @@ use std::process::ExitCode;
 #[derive(Debug)]
 struct Rlox {
     had_error: bool,
+    had_runtime_error: bool,
 }
 
 impl Default for Rlox {
     fn default() -> Rlox {
-        Rlox { had_error: false }
+        Rlox { had_error: false, had_runtime_error: false }
     }
 }
 
@@ -33,6 +36,8 @@ impl Rlox {
         self.run(file);
         if self.had_error {
             let _ = ExitCode::from(65);
+        } else if self.had_runtime_error {
+            let _ = ExitCode::from(70);
         }
     }
 
@@ -49,6 +54,7 @@ impl Rlox {
                 Err(e) => panic!("{}", e),
             }
             self.had_error = false;
+            self.had_runtime_error = false;
         }
     }
 
@@ -73,6 +79,11 @@ impl Rlox {
         }
     }
 
+    fn runtime_error(&mut self, line:i32, message: String) {
+        eprintln!("[line {}]: {}", line, message);
+        self.had_runtime_error = true;
+    }
+
     fn run(&mut self, source: String) {
         let mut scanner = Scanner::new(source, self);
         let tokens: Vec<Token> = scanner.scan_tokens();
@@ -83,9 +94,12 @@ impl Rlox {
 
         let mut parser: Parser = Parser::new(tokens, self);
         let expr: Expr = parser.parse();
+        let mut interpreter: Interpreter = Interpreter::new(self);
+        println!("{:?}", interpreter.interpret(expr.clone()));
+        stdout().flush().expect("Unable to flush to stdout!");
 
         // If error, return
-        if self.had_error {
+        if self.had_error || self.had_runtime_error {
             return;
         }
 

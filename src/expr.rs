@@ -11,6 +11,7 @@ use crate::token_type::TokenType;
 // use token_type::TokenType;
 // use token::{Token, Object};
 
+#[derive(Clone)]
 pub enum Expr {
     Binary(Box<BinaryExpression>),
     Grouping(Box<GroupingExpression>),
@@ -18,27 +19,67 @@ pub enum Expr {
     Unary(Box<UnaryExpression>),
 }
 
+#[derive(Clone)]
 pub struct BinaryExpression {
     left: Box<Expr>,
     operator: Token,
     right: Box<Expr>,
 }
 
+#[derive(Clone)]
 pub struct GroupingExpression {
     expression: Box<Expr>,
 }
 
+#[derive(Clone)]
 pub struct LiteralExpression {
     literal_type: Object,
     value: Token,
 }
 
+#[derive(Clone)]
 pub struct UnaryExpression {
     operator: Token,
     right: Box<Expr>,
 }
 
 impl Expr {
+    pub fn get_literal_value(expr: LiteralExpression) -> String {
+        expr.value.get_lexeme()
+    }
+
+    pub fn get_literal_type(expr: LiteralExpression) -> Object {
+        expr.literal_type
+    }
+
+    pub fn get_grouping_expr(expr: GroupingExpression) -> Expr {
+        (*expr.expression).clone()
+    }
+
+    pub fn get_unary_expr(expr: UnaryExpression) ->  Expr {
+        (*expr.right).clone()
+    }
+
+    pub fn get_unary_op(expr: UnaryExpression) -> TokenType {
+        expr.operator.get_type()
+    }
+
+    pub fn get_binary_left(expr: BinaryExpression) -> Expr {
+        (*expr.left).clone()
+    }
+
+    pub fn get_binary_line(expr: BinaryExpression) -> i32 {
+        expr.operator.get_line()
+    }
+
+    pub fn get_binary_right(expr: BinaryExpression) -> Expr {
+        (*expr.right).clone()
+    }
+
+    pub fn get_binary_op(expr: BinaryExpression) -> TokenType {
+        expr.operator.get_type()
+    }
+
     pub fn new_binary(left: Expr, operator: Token, right: Expr) -> Expr {
         Expr::Binary(Box::from(BinaryExpression {
             left: Box::from(left),
@@ -52,6 +93,10 @@ impl Expr {
             operator,
             right: Box::from(right),
         }))
+    }
+
+    pub fn get_unary_line(expr: UnaryExpression) -> i32 {
+        expr.operator.get_line()
     }
 
     pub fn new_literal(literal_type: Object, value: Token) -> Expr {
@@ -68,6 +113,7 @@ impl Expr {
     }
 }
 
+// Below contents are of the AST Printer Class from the book
 pub fn parenthesize(name: String, exprs: &[&Expr]) -> String {
     let mut out = format!("({}", name);
     for expr in exprs {

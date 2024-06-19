@@ -59,7 +59,7 @@ impl Scanner<'_> {
     fn add_token(&mut self, token_type: TokenType) {
         let text: String = self.source[self.start..self.current].to_string();
         self.tokens
-            .push(Token::new(token_type, text, self.line, Object::None));
+            .push(Token::new(token_type, text, self.line, Object::Nil));
     }
 
     fn add_token_value(&mut self, token_type: TokenType, literal: Object) {
@@ -242,7 +242,7 @@ impl Scanner<'_> {
             TokenType::EOF,
             "".to_string(),
             self.line,
-            Object::None,
+            Object::Nil,
         ));
         return self.tokens.clone();
     }
