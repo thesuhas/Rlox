@@ -1,15 +1,15 @@
 mod expr;
+mod interpreter;
 mod parser;
 pub mod scanner;
 mod token;
 mod token_type;
-mod interpreter;
 
 use scanner::Scanner;
 
 use crate::expr::Expr;
-use crate::parser::Parser;
 use crate::interpreter::Interpreter;
+use crate::parser::Parser;
 use crate::token::Token;
 use crate::token_type::TokenType;
 use crate::token_type::TokenType::Plus;
@@ -26,7 +26,10 @@ struct Rlox {
 
 impl Default for Rlox {
     fn default() -> Rlox {
-        Rlox { had_error: false, had_runtime_error: false }
+        Rlox {
+            had_error: false,
+            had_runtime_error: false,
+        }
     }
 }
 
@@ -79,7 +82,7 @@ impl Rlox {
         }
     }
 
-    fn runtime_error(&mut self, line:i32, message: String) {
+    fn runtime_error(&mut self, line: i32, message: String) {
         eprintln!("[line {}]: {}", line, message);
         self.had_runtime_error = true;
     }

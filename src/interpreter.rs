@@ -1,19 +1,16 @@
-use std::any::{Any, TypeId};
 use crate::expr::{BinaryExpression, Expr, GroupingExpression, LiteralExpression, UnaryExpression};
-use crate::Rlox;
 use crate::token::{Object, Token};
 use crate::token_type::TokenType;
+use crate::Rlox;
+use std::any::{Any, TypeId};
 
 pub struct Interpreter<'a> {
     rlox: &'a mut Rlox,
 }
 
 impl Interpreter<'_> {
-
     pub fn new(rlox: &mut Rlox) -> Interpreter {
-        Interpreter{
-            rlox
-        }
+        Interpreter { rlox }
     }
 
     pub fn interpret(&mut self, expr: Expr) -> String {
@@ -21,7 +18,7 @@ impl Interpreter<'_> {
         self.stringify(val)
     }
 
-    fn stringify(&self, val: Box<dyn Any>) -> String{
+    fn stringify(&self, val: Box<dyn Any>) -> String {
         let type_id = (&*val).type_id();
         return if type_id == TypeId::of::<f64>() {
             let num: Box<f64> = val.downcast().unwrap();
@@ -33,7 +30,7 @@ impl Interpreter<'_> {
         } else {
             let str: Box<String> = val.downcast().unwrap();
             *str
-        }
+        };
     }
 
     fn visit_literal_expr(&self, expr: LiteralExpression) -> Box<dyn Any> {
@@ -47,11 +44,11 @@ impl Interpreter<'_> {
                 } else {
                     Box::from(true)
                 }
-            },
+            }
             Object::String => {
                 let new: Box<dyn Any> = Box::new(val);
                 new
-            },
+            }
         }
     }
 
@@ -59,30 +56,31 @@ impl Interpreter<'_> {
         self.evaluate(Expr::get_grouping_expr(expr))
     }
 
-    fn check_number_operand(&mut self, token: TokenType, type_id: TypeId, line: i32) {
+    fn check_number_operand(&mut self, type_id: TypeId, line: i32) {
         if type_id == TypeId::of::<f64>() {
             return;
         }
-        self.rlox.runtime_error(line, format!("Operand must be a number. Is: {:?}", token));
+        self.rlox
+            .runtime_error(line, "Operand must be a number".to_string());
     }
 
-    fn check_number_operands(&mut self, left_type: TypeId, right_type: TypeId, line:i32) {
+    fn check_number_operands(&mut self, left_type: TypeId, right_type: TypeId, line: i32) {
         if left_type == TypeId::of::<f64>() && right_type == TypeId::of::<f64>() {
             return;
         }
 
-        self.rlox.runtime_error(line, "Operands must be numbers".to_string());
+        self.rlox
+            .runtime_error(line, "Operands must be numbers".to_string());
     }
 
     fn visit_unary_expr(&mut self, expr: UnaryExpression) -> Box<dyn Any> {
         let line: i32 = Expr::get_unary_line(expr.clone());
         let val = self.evaluate(Expr::get_unary_expr(expr.clone()));
-        let op: TokenType = Expr::get_unary_op(expr.clone());
-        match op {
+        match Expr::get_unary_op(expr.clone()) {
             TokenType::Minus => {
-                self.check_number_operand(op, (&*val).type_id(), line);
+                self.check_number_operand((&*val).type_id(), line);
                 let temp: Box<f64> = val.downcast().unwrap();
-                return Box::from(- (*temp));
+                return Box::from(-(*temp));
             }
             TokenType::Bang => {
                 let right = self.evaluate(Expr::get_unary_expr(expr.clone()));
@@ -95,16 +93,16 @@ impl Interpreter<'_> {
                 //     return Box::from(!self.is_truthy(Object::Nil, false));
                 // }
                 return Box::from(!self.is_truthy(Object::String, false));
-            },
+            }
             // There should not be any other types of operations in Unary Expressions
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
     fn visit_binary_expr(&mut self, expr: BinaryExpression) -> Box<dyn Any> {
         let left = self.evaluate(Expr::get_binary_left(expr.clone()));
         let right = self.evaluate(Expr::get_binary_right(expr.clone()));
-        let line:i32 = Expr::get_binary_line(expr.clone());
+        let line: i32 = Expr::get_binary_line(expr.clone());
         match Expr::get_binary_op(expr.clone()) {
             TokenType::Minus => self.evaluate_numbers(left, right, TokenType::Minus, line),
             TokenType::Slash => self.evaluate_numbers(left, right, TokenType::Slash, line),
@@ -120,24 +118,35 @@ impl Interpreter<'_> {
                 } else if left_type == TypeId::of::<f64>() && right_type == TypeId::of::<f64>() {
                     return self.evaluate_numbers(left, right, TokenType::Plus, line);
                 } else {
-                    self.rlox.runtime_error(line, "Operands must be either numbers or strings".to_string());
+                    self.rlox.runtime_error(
+                        line,
+                        "Operands must be either numbers or strings".to_string(),
+                    );
                     unreachable!()
                 }
-            },
+            }
             TokenType::Greater => self.evaluate_numbers(left, right, TokenType::Greater, line),
-            TokenType::GreaterEqual => self.evaluate_numbers(left, right, TokenType::GreaterEqual, line),
+            TokenType::GreaterEqual => {
+                self.evaluate_numbers(left, right, TokenType::GreaterEqual, line)
+            }
             TokenType::Less => self.evaluate_numbers(left, right, TokenType::Less, line),
             TokenType::LessEqual => self.evaluate_numbers(left, right, TokenType::LessEqual, line),
             TokenType::BangEqual => Box::from(!self.is_equal(left, right)),
             TokenType::EqualEqual => Box::from(self.is_equal(left, right)),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
-    fn evaluate_numbers(&mut self, left: Box<dyn Any>, right:Box<dyn Any>, op: TokenType, line: i32) -> Box<dyn Any> {
+    fn evaluate_numbers(
+        &mut self,
+        left: Box<dyn Any>,
+        right: Box<dyn Any>,
+        op: TokenType,
+        line: i32,
+    ) -> Box<dyn Any> {
         self.check_number_operands((&*left).type_id(), (&*right).type_id(), line);
-        let left_num:Box<f64> = left.downcast().unwrap();
-        let right_num:Box<f64> = right.downcast().unwrap();
+        let left_num: Box<f64> = left.downcast().unwrap();
+        let right_num: Box<f64> = right.downcast().unwrap();
 
         match op {
             TokenType::Plus => Box::from((*left_num) + (*right_num)),
@@ -148,7 +157,9 @@ impl Interpreter<'_> {
             TokenType::GreaterEqual => Box::from((*left_num) >= (*right_num)),
             TokenType::Less => Box::from((*left_num) < (*right_num)),
             TokenType::LessEqual => Box::from((*left_num) <= (*right_num)),
-            _ => {unreachable!()}
+            _ => {
+                unreachable!()
+            }
         }
     }
 
@@ -163,12 +174,12 @@ impl Interpreter<'_> {
         //     return Box::from(false);
         // } else
         if left_type == TypeId::of::<f64>() && right_type == TypeId::of::<f64>() {
-            let left_num:Box<f64> = left.downcast().unwrap();
-            let right_num:Box<f64> = right.downcast().unwrap();
+            let left_num: Box<f64> = left.downcast().unwrap();
+            let right_num: Box<f64> = right.downcast().unwrap();
             return (*left_num) == (*right_num);
         } else if left_type == TypeId::of::<String>() && right_type == TypeId::of::<String>() {
-            let left_str:Box<String> = left.downcast().unwrap();
-            let right_str:Box<String> = right.downcast().unwrap();
+            let left_str: Box<String> = left.downcast().unwrap();
+            let right_str: Box<String> = right.downcast().unwrap();
             return (*left_str) == (*right_str);
         }
         unreachable!()
@@ -179,7 +190,7 @@ impl Interpreter<'_> {
             Object::Nil => false,
             Object::Bool => val,
             _ => true,
-        }
+        };
     }
 
     fn evaluate(&mut self, expr: Expr) -> Box<dyn Any> {
@@ -187,7 +198,7 @@ impl Interpreter<'_> {
             Expr::Literal(expr) => self.visit_literal_expr((*expr).clone()),
             Expr::Grouping(expr) => self.visit_group_expr((*expr).clone()),
             Expr::Unary(expr) => self.visit_unary_expr((*expr).clone()),
-            Expr::Binary(expr)  => self.visit_binary_expr((*expr).clone()),
-            }
+            Expr::Binary(expr) => self.visit_binary_expr((*expr).clone()),
+        }
     }
 }

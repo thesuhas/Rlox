@@ -56,7 +56,7 @@ impl Expr {
         (*expr.expression).clone()
     }
 
-    pub fn get_unary_expr(expr: UnaryExpression) ->  Expr {
+    pub fn get_unary_expr(expr: UnaryExpression) -> Expr {
         (*expr.right).clone()
     }
 

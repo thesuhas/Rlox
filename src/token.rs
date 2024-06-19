@@ -6,7 +6,7 @@ pub enum Object {
     String,
     Number,
     Bool,
-    Nil
+    Nil,
 }
 
 #[derive(Debug, Clone)]
