@@ -24,6 +24,19 @@ impl Environment {
         self.values.insert(key, Value { ty, val });
     }
 
+    pub fn assign(&mut self, name: Token, val: Box<dyn Any>) -> Box<dyn Any> {
+        if self.values.contains_key(&name.get_lexeme()) {
+            let mut ty: Object = Object::Nil;
+            match self.values.get(&name.get_lexeme()) {
+                Some(val) => ty = val.ty.clone(),
+                None => unreachable!()
+            }
+            self.values.insert(name.get_lexeme(), Value{ty, val});
+            return self.get(name);
+        }
+        panic!("Undefined variable: {:?}", name.get_lexeme());
+    }
+
     pub fn get(&mut self, name: Token) -> Box<dyn Any> {
         match self.values.get(&name.get_lexeme()) {
             Some(val) => {

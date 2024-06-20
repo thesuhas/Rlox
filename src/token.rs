@@ -1,6 +1,6 @@
 use crate::token_type::TokenType;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy)]
 pub enum Object {
     // None,
     String,

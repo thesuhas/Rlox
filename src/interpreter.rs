@@ -1,8 +1,5 @@
 use crate::environment::Environment;
-use crate::expr::{
-    BinaryExpression, Expr, GroupingExpression, LiteralExpression, UnaryExpression,
-    VariableExpression,
-};
+use crate::expr::{AssignmentExpression, BinaryExpression, Expr, GroupingExpression, LiteralExpression, UnaryExpression, VariableExpression};
 use crate::stmt::{ExpressionStatement, PrintStatement, Stmt, VarStmt};
 use crate::token::Object;
 use crate::token_type::TokenType;
@@ -232,6 +229,13 @@ impl Interpreter<'_> {
         self.env.get(Expr::get_var_name(expr))
     }
 
+    fn visit_assign_expr(&mut self, expr: AssignmentExpression) -> Box<dyn Any> {
+        // Evaluate the rhs
+        let val: Box<dyn Any> = self.evaluate(Expr::get_assign_val(expr.clone()));
+        // Set the value
+        self.env.assign(Expr::get_assign_name(expr), val)
+    }
+
     fn evaluate(&mut self, expr: Expr) -> Box<dyn Any> {
         match expr {
             Expr::Literal(expr) => self.visit_literal_expr((*expr).clone()),
@@ -239,6 +243,7 @@ impl Interpreter<'_> {
             Expr::Unary(expr) => self.visit_unary_expr((*expr).clone()),
             Expr::Binary(expr) => self.visit_binary_expr((*expr).clone()),
             Expr::Variable(expr) => self.visit_variable_expr((*expr).clone()),
+            Expr::Assign(expr) => self.visit_assign_expr((*expr).clone()),
         }
     }
 

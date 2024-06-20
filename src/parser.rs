@@ -72,7 +72,33 @@ impl Parser<'_> {
     }
 
     fn expression(&mut self) -> Expr {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Expr {
+        // Get the lhs
+        let expr: Expr = self.equality();
+
+        // Now we check if the current token is an Equal, if it is, it's an assignment
+        if self.match_token(&[&TokenType::Equal]) {
+            let equals: Token = self.previous();
+            let val: Expr = self.assignment();
+
+            // Now if the original expression is not a variable, invalid assignment
+            match expr {
+                Expr::Variable(expr) => {
+                    let name: Token = Expr::get_var_name(*expr);
+                    return Expr::new_assign_expr(name, val);
+                },
+                _ => {
+                    // Should not be any other type
+                    self.rlox.parse_error(equals, "Invalid assignment target".to_string());
+                    unreachable!()
+                }
+            }
+        }
+        // Return expr if not equal
+        expr
     }
 
     fn equality(&mut self) -> Expr {

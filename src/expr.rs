@@ -12,11 +12,18 @@ use crate::token_type::TokenType;
 
 #[derive(Clone)]
 pub enum Expr {
+    Assign(Box<AssignmentExpression>),
     Binary(Box<BinaryExpression>),
     Grouping(Box<GroupingExpression>),
     Literal(Box<LiteralExpression>),
     Unary(Box<UnaryExpression>),
     Variable(Box<VariableExpression>),
+}
+
+#[derive(Clone)]
+pub struct AssignmentExpression {
+    name: Token,
+    val: Box<Expr>,
 }
 
 #[derive(Clone)]
@@ -124,6 +131,18 @@ impl Expr {
             expression: Box::from(expression),
         }))
     }
+
+    pub fn get_assign_name(expr: AssignmentExpression) -> Token {
+        expr.name
+    }
+
+    pub fn get_assign_val(expr: AssignmentExpression) -> Expr {
+        (*expr.val).clone()
+    }
+
+    pub fn new_assign_expr(name: Token, val: Expr) -> Expr {
+        Expr::Assign(Box::from(AssignmentExpression{name, val: Box::from(val)}))
+    }
 }
 
 // Below contents are of the AST Printer Class from the book
@@ -143,6 +162,7 @@ pub fn print_expr(expr: &Expr) -> String {
         Expr::Literal(l) => format!("{}", l.value.print()),
         Expr::Unary(u) => parenthesize(u.operator.print(), &[u.right.as_ref()]),
         Expr::Variable(v) => format!("{} ", v.name.to_string()),
+        Expr::Assign(a) => format!("{}", a.name.to_string()),
     };
     format!("{}", out)
 }
