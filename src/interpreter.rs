@@ -1,18 +1,27 @@
-use crate::expr::{BinaryExpression, Expr, GroupingExpression, LiteralExpression, UnaryExpression};
-use crate::token::{Object, Token};
+use crate::environment::Environment;
+use crate::expr::{
+    BinaryExpression, Expr, GroupingExpression, LiteralExpression, UnaryExpression,
+    VariableExpression,
+};
+use crate::stmt::{ExpressionStatement, PrintStatement, Stmt, VarStmt};
+use crate::token::Object;
 use crate::token_type::TokenType;
 use crate::Rlox;
 use std::any::{Any, TypeId};
 use std::io::{stdout, Write};
-use crate::stmt::{ExpressionStatement, PrintStatement, Stmt};
+use std::string::String;
 
 pub struct Interpreter<'a> {
+    env: Environment,
     rlox: &'a mut Rlox,
 }
 
 impl Interpreter<'_> {
     pub fn new(rlox: &mut Rlox) -> Interpreter {
-        Interpreter { rlox }
+        Interpreter {
+            rlox,
+            env: Environment::new(),
+        }
     }
 
     pub fn interpret(&mut self, stmts: Vec<Stmt>) {
@@ -22,17 +31,25 @@ impl Interpreter<'_> {
     }
 
     fn stringify(&self, val: Box<dyn Any>) -> String {
-        let type_id = (&*val).type_id();
-        return if type_id == TypeId::of::<f64>() {
-            let num: Box<f64> = val.downcast().unwrap();
-            let mut num_str = (*num).to_string();
-            if num_str.ends_with(".0") {
-                num_str.truncate(num_str.len() - 2);
+        let test_val = (&*val).downcast_ref::<Option<String>>();
+        return match test_val {
+            None => {
+                let type_id = (&*val).type_id();
+                if type_id == TypeId::of::<f64>() {
+                    let num: Box<f64> = val.downcast().unwrap();
+                    let mut num_str = (*num).to_string();
+                    if num_str.ends_with(".0") {
+                        num_str.truncate(num_str.len() - 2);
+                    }
+                    num_str
+                } else if type_id == TypeId::of::<String>() {
+                    let str: Box<String> = val.downcast().unwrap();
+                    *str
+                } else {
+                    unreachable!()
+                }
             }
-            num_str
-        } else {
-            let str: Box<String> = val.downcast().unwrap();
-            *str
+            Some(_) => "nil".to_string(),
         };
     }
 
@@ -87,14 +104,17 @@ impl Interpreter<'_> {
             }
             TokenType::Bang => {
                 let right = self.evaluate(Expr::get_unary_expr(expr.clone()));
-                let actual_id = (&*right).type_id();
-                if actual_id == TypeId::of::<bool>() {
-                    let temp: Box<bool> = right.downcast().unwrap();
-                    return Box::from(!self.is_truthy(Object::Bool, *temp));
+                let test_right = (&*right).downcast_ref::<Option<String>>();
+                match test_right {
+                    None => {
+                        let actual_id = (&*right).type_id();
+                        if actual_id == TypeId::of::<bool>() {
+                            let temp: Box<bool> = right.downcast().unwrap();
+                            return Box::from(!self.is_truthy(Object::Bool, *temp));
+                        }
+                    }
+                    Some(_) => return Box::from(!self.is_truthy(Object::Nil, false)),
                 }
-                // } else if actual_id == TypeId::of::<None>() {
-                //     return Box::from(!self.is_truthy(Object::Nil, false));
-                // }
                 return Box::from(!self.is_truthy(Object::String, false));
             }
             // There should not be any other types of operations in Unary Expressions
@@ -117,7 +137,8 @@ impl Interpreter<'_> {
                 if left_type == TypeId::of::<String>() && right_type == TypeId::of::<String>() {
                     let mut left_string: Box<String> = left.downcast().unwrap();
                     let right_string: Box<String> = right.downcast().unwrap();
-                    return Box::from(left_string.push_str(right_string.as_str()));
+                    left_string.push_str(right_string.as_str());
+                    return Box::new(*left_string);
                 } else if left_type == TypeId::of::<f64>() && right_type == TypeId::of::<f64>() {
                     return self.evaluate_numbers(left, right, TokenType::Plus, line);
                 } else {
@@ -167,24 +188,35 @@ impl Interpreter<'_> {
     }
 
     fn is_equal(&self, left: Box<dyn Any>, right: Box<dyn Any>) -> bool {
-        let right_type = (&*right).type_id();
-        let left_type = (&*left).type_id();
-
-        // if left_type == TypeId::of::<None>() && right_type == TypeId::of::<None>() {
-        //     return Box::from(true);
-        // } else
-        // if left_type == TypeId::of::<None>() {
-        //     return Box::from(false);
-        // } else
-        if left_type == TypeId::of::<f64>() && right_type == TypeId::of::<f64>() {
-            let left_num: Box<f64> = left.downcast().unwrap();
-            let right_num: Box<f64> = right.downcast().unwrap();
-            return (*left_num) == (*right_num);
-        } else if left_type == TypeId::of::<String>() && right_type == TypeId::of::<String>() {
-            let left_str: Box<String> = left.downcast().unwrap();
-            let right_str: Box<String> = right.downcast().unwrap();
-            return (*left_str) == (*right_str);
+        let left_test = (&*left).downcast_ref::<Option<String>>();
+        let right_test = (&*right).downcast_ref::<Option<String>>();
+        match left_test {
+            None => match right_test {
+                None => {
+                    let right_type = (&*right).type_id();
+                    let left_type = (&*left).type_id();
+                    if left_type == TypeId::of::<f64>() && right_type == TypeId::of::<f64>() {
+                        let left_num: Box<f64> = left.downcast().unwrap();
+                        let right_num: Box<f64> = right.downcast().unwrap();
+                        return (*left_num) == (*right_num);
+                    } else if left_type == TypeId::of::<String>()
+                        && right_type == TypeId::of::<String>()
+                    {
+                        let left_str: Box<String> = left.downcast().unwrap();
+                        let right_str: Box<String> = right.downcast().unwrap();
+                        return (*left_str) == (*right_str);
+                    }
+                }
+                Some(_) => return false,
+            },
+            Some(_) => {
+                return match right_test {
+                    None => false,
+                    Some(_) => true,
+                }
+            }
         }
+
         unreachable!()
     }
 
@@ -196,20 +228,25 @@ impl Interpreter<'_> {
         };
     }
 
+    fn visit_variable_expr(&mut self, expr: VariableExpression) -> Box<dyn Any> {
+        self.env.get(Expr::get_var_name(expr))
+    }
+
     fn evaluate(&mut self, expr: Expr) -> Box<dyn Any> {
         match expr {
             Expr::Literal(expr) => self.visit_literal_expr((*expr).clone()),
             Expr::Grouping(expr) => self.visit_group_expr((*expr).clone()),
             Expr::Unary(expr) => self.visit_unary_expr((*expr).clone()),
             Expr::Binary(expr) => self.visit_binary_expr((*expr).clone()),
+            Expr::Variable(expr) => self.visit_variable_expr((*expr).clone()),
         }
     }
 
-
     fn execute(&mut self, stmt: Stmt) {
         match stmt.clone() {
-            Stmt::ExpressionStatement(stmt) => self.visit_expr_stmt((*stmt).clone()),
-            Stmt::PrintStatement(stmt) => self.visit_print_stmt((*stmt).clone())
+            Stmt::Expression(stmt) => self.visit_expr_stmt((*stmt).clone()),
+            Stmt::Print(stmt) => self.visit_print_stmt((*stmt).clone()),
+            Stmt::Var(stmt) => self.visit_var_stmt((*stmt).clone()),
         }
     }
 
@@ -222,5 +259,32 @@ impl Interpreter<'_> {
         let str_out = self.stringify(out);
         println!("{:?}", str_out);
         stdout().flush().expect("Unable to flush to stdout!");
+    }
+
+    fn visit_var_stmt(&mut self, stmt: VarStmt) {
+        let val: Box<dyn Any>;
+        let opt: Option<Expr> = Stmt::get_var_initializer(stmt.clone());
+        match opt {
+            Some(opt) => {
+                val = self.evaluate(opt);
+            }
+            None => {
+                val = Box::from(Option::<String>::None);
+            }
+        }
+        let ty = (&*val).downcast_ref::<Option<String>>();
+        match ty {
+            Some(_) => self.env.define(Stmt::get_var_key(stmt), val, Object::Nil),
+            None => {
+                let type_id = (&*val).type_id();
+                if type_id == TypeId::of::<f64>() {
+                    self.env
+                        .define(Stmt::get_var_key(stmt), val, Object::Number);
+                } else {
+                    self.env
+                        .define(Stmt::get_var_key(stmt), val, Object::String);
+                }
+            }
+        }
     }
 }

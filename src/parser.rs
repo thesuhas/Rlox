@@ -1,8 +1,8 @@
-use crate::expr::{Expr};
+use crate::expr::Expr;
+use crate::stmt::Stmt;
 use crate::token::{Object, Token};
 use crate::token_type::TokenType;
 use crate::Rlox;
-use crate::stmt::Stmt;
 
 pub struct Parser<'a> {
     tokens: Vec<Token>,
@@ -22,9 +22,31 @@ impl Parser<'_> {
     pub fn parse(&mut self) -> Vec<Stmt> {
         let mut stmts: Vec<Stmt> = Vec::new();
         while !self.is_at_end() {
-            stmts.push(self.statement());
+            stmts.push(self.declaration());
         }
         stmts
+    }
+
+    fn declaration(&mut self) -> Stmt {
+        if self.match_token(&[&TokenType::Var]) {
+            return self.var_declaration();
+        }
+        return self.statement();
+    }
+
+    fn var_declaration(&mut self) -> Stmt {
+        self.consume(TokenType::Identifier, "Expect variable name".to_string());
+        let var = self.previous();
+        let mut initializer: Option<Expr> = None;
+        if self.match_token(&[&TokenType::Equal]) {
+            initializer = Some(self.expression());
+        }
+
+        self.consume(
+            TokenType::SemiColon,
+            "Expect ';' after variable declaration".to_string(),
+        );
+        Stmt::Var(Box::from(Stmt::new_var_stmt(var, initializer)))
     }
 
     fn statement(&mut self) -> Stmt {
@@ -37,13 +59,16 @@ impl Parser<'_> {
     fn print_statement(&mut self) -> Stmt {
         let expr: Expr = self.expression();
         self.consume(TokenType::SemiColon, "Expect ';' after value".to_string());
-        return Stmt::PrintStatement(Box::from(Stmt::new_print_stmt(expr)));
+        return Stmt::Print(Box::from(Stmt::new_print_stmt(expr)));
     }
 
     fn expression_statement(&mut self) -> Stmt {
         let expr: Expr = self.expression();
-        self.consume(TokenType::SemiColon, "Expect ';' after statement".to_string());
-        return Stmt::ExpressionStatement(Box::from(Stmt::new_exp_stmt(expr)));
+        self.consume(
+            TokenType::SemiColon,
+            "Expect ';' after statement".to_string(),
+        );
+        return Stmt::Expression(Box::from(Stmt::new_exp_stmt(expr)));
     }
 
     fn expression(&mut self) -> Expr {
@@ -142,6 +167,8 @@ impl Parser<'_> {
             return Some(Expr::new_literal(Object::Nil, self.previous()));
         } else if self.match_token(&[&TokenType::Number]) {
             return Some(Expr::new_literal(Object::Number, self.previous()));
+        } else if self.match_token(&[&TokenType::Identifier]) {
+            return Some(Expr::new_variable(self.previous()));
         } else if self.match_token(&[&TokenType::String]) {
             return Some(Expr::new_literal(Object::String, self.previous()));
         } else if self.match_token(&[&TokenType::LeftParen]) {

@@ -63,7 +63,9 @@ impl Scanner<'_> {
     }
 
     fn add_token_value(&mut self, token_type: TokenType, literal: Object) {
-        let text: String = self.source[self.start..self.current].to_string();
+        let mut text: String = self.source[self.start..self.current].to_string();
+        // Strip the " from the string
+        text = text.as_str().replace("\"", "").to_string();
         self.tokens
             .push(Token::new(token_type, text, self.line, literal));
     }

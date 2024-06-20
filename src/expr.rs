@@ -1,4 +1,3 @@
-use crate::expr::Expr::Unary;
 use crate::token::{Object, Token};
 use crate::token_type::TokenType;
 
@@ -17,6 +16,7 @@ pub enum Expr {
     Grouping(Box<GroupingExpression>),
     Literal(Box<LiteralExpression>),
     Unary(Box<UnaryExpression>),
+    Variable(Box<VariableExpression>),
 }
 
 #[derive(Clone)]
@@ -41,6 +41,11 @@ pub struct LiteralExpression {
 pub struct UnaryExpression {
     operator: Token,
     right: Box<Expr>,
+}
+
+#[derive(Clone)]
+pub struct VariableExpression {
+    name: Token,
 }
 
 impl Expr {
@@ -106,6 +111,14 @@ impl Expr {
         }))
     }
 
+    pub fn new_variable(name: Token) -> Expr {
+        Expr::Variable(Box::from(VariableExpression { name }))
+    }
+
+    pub fn get_var_name(expr: VariableExpression) -> Token {
+        expr.name
+    }
+
     pub fn new_grouping(expression: Expr) -> Expr {
         Expr::Grouping(Box::from(GroupingExpression {
             expression: Box::from(expression),
@@ -129,6 +142,7 @@ pub fn print_expr(expr: &Expr) -> String {
         Expr::Grouping(g) => parenthesize("group".to_string(), &[g.expression.as_ref()]),
         Expr::Literal(l) => format!("{}", l.value.print()),
         Expr::Unary(u) => parenthesize(u.operator.print(), &[u.right.as_ref()]),
+        Expr::Variable(v) => format!("{} ", v.name.to_string()),
     };
     format!("{}", out)
 }

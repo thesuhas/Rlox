@@ -1,24 +1,23 @@
+mod environment;
 mod expr;
 mod interpreter;
 mod parser;
 pub mod scanner;
+mod stmt;
 mod token;
 mod token_type;
-mod stmt;
 
 use scanner::Scanner;
 
-use crate::expr::Expr;
 use crate::interpreter::Interpreter;
 use crate::parser::Parser;
+use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::token_type::TokenType;
-use crate::token_type::TokenType::Plus;
 use std::env;
 use std::fs;
 use std::io::{stdin, stdout, Write};
 use std::process::ExitCode;
-use crate::stmt::Stmt;
 
 #[derive(Debug)]
 struct Rlox {
@@ -93,10 +92,6 @@ impl Rlox {
         let mut scanner = Scanner::new(source, self);
         let tokens: Vec<Token> = scanner.scan_tokens();
 
-        // for token in tokens.iter() {
-        //     println!("{}", token.to_string());
-        // }
-
         let mut parser: Parser = Parser::new(tokens, self);
         let stmts: Vec<Stmt> = parser.parse();
         let mut interpreter: Interpreter = Interpreter::new(self);
@@ -106,8 +101,6 @@ impl Rlox {
         if self.had_error || self.had_runtime_error {
             return;
         }
-
-        // expr::print_expr(&expr);
     }
 }
 

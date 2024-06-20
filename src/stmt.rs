@@ -1,14 +1,22 @@
 use crate::expr::Expr;
+use crate::token::Token;
 
 #[derive(Clone)]
-pub enum Stmt{
-    ExpressionStatement(Box<ExpressionStatement>),
-    PrintStatement(Box<PrintStatement>),
+pub enum Stmt {
+    Expression(Box<ExpressionStatement>),
+    Print(Box<PrintStatement>),
+    Var(Box<VarStmt>),
 }
 
 #[derive(Clone)]
-pub struct  ExpressionStatement {
+pub struct ExpressionStatement {
     expression: Box<Expr>,
+}
+
+#[derive(Clone)]
+pub struct VarStmt {
+    name: Token,
+    initializer: Option<Expr>,
 }
 
 #[derive(Clone)]
@@ -17,7 +25,7 @@ pub struct PrintStatement {
 }
 
 impl Stmt {
-    pub fn get_expr_stmt_expr(stmt: ExpressionStatement) -> Expr{
+    pub fn get_expr_stmt_expr(stmt: ExpressionStatement) -> Expr {
         (*stmt.expression).clone()
     }
 
@@ -32,8 +40,23 @@ impl Stmt {
     }
 
     pub fn new_print_stmt(expr: Expr) -> PrintStatement {
-        PrintStatement{
+        PrintStatement {
             expression: Box::from(expr),
         }
+    }
+
+    pub fn new_var_stmt(tok: Token, expr: Option<Expr>) -> VarStmt {
+        VarStmt {
+            name: tok,
+            initializer: expr,
+        }
+    }
+
+    pub fn get_var_initializer(stmt: VarStmt) -> Option<Expr> {
+        stmt.initializer
+    }
+
+    pub fn get_var_key(stmt: VarStmt) -> String {
+        stmt.name.get_lexeme()
     }
 }
